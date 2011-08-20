@@ -5,11 +5,6 @@ open Ocamlbuild_plugin
    | Ocamlfind                                                       |
    +-----------------------------------------------------------------+ *)
 
-exit 1;;
-
-let _ =
-	Array.iter print_endline Sys.argv
-
 (* these functions are not really officially exported *)
 let run_and_read = Ocamlbuild_pack.My_unix.run_and_read
 let blank_sep_strings = Ocamlbuild_pack.Lexers.blank_sep_strings
