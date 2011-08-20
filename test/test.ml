@@ -1,3 +1,3 @@
 
 let _ =
-	debug "sdf %s" "Haaa!"
+	debug "sdf %s %s" "Haaa!" "zz"

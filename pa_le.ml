@@ -27,7 +27,7 @@ EXTEND Gram
 GLOBAL: expr;
 
 	expr: LEVEL "top" [
-		[ LIDENT "debug"; fmt = STRING; args = LIST0 [ n = expr -> n ] -> Debug.register ~fmt ~args _loc ]
+		[ LIDENT "debug"; fmt = STRING; args = LIST0 [ n = expr LEVEL "." -> n ] -> Debug.register ~fmt ~args _loc ]
 	];
 
 END;
