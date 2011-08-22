@@ -1,5 +1,6 @@
-open Printf
 open Ocamlbuild_plugin
+
+let files = ["META"; "pa_le.cmo"; "pa_le.cmi"; "pa_le.cmx"; "pa_le.o"; "le.cmxa"; "le.cma"; "le.mli"; "le.cmi"; "le.a"]
 
 (* +-----------------------------------------------------------------+
    | Ocamlfind                                                       |
@@ -22,7 +23,7 @@ let split s ch =
 
 let split_nl s = split s '\n'
 
-	let before_space s =
+let before_space s =
 	try
 		String.before s (String.index s ' ')
 	with Not_found -> s
@@ -42,35 +43,37 @@ let flag_all tag f =
 	flag_all_except_link tag f;
 	flag ["ocaml"; "link"; tag] f
 
-let deps = ["META"; "pa_le.cmo"; "pa_le.cmi"; "pa_le.cmx"; "pa_le.o"]
+let ocamlfind x = S[A"ocamlfind"; A x]
 
-let files = List.map (fun f -> A f) deps
+let rule_ocamlfind l _ _ = Cmd (S((A"ocamlfind") :: l))
+
+let installer_rules ~files ~name =
+	let deps = List.map (fun f -> f) files in
+	let files = List.map (fun f -> A f) files in
+	rule ("Install " ^ name) ~prod:"install" ~deps (rule_ocamlfind (A"install" :: A name :: files));
+	rule ("Uninstall " ^ name) ~prod:"uninstall" ~deps:[] (rule_ocamlfind [A"remove"; A name]);
+	rule ("Reinstall" ^ name) ~prod:"reinstall" ~deps:["uninstall"; "install"] (fun _ _ -> Cmd (S[A"/bin/true"]))
+
+let prepare () =
+	Options.ocamlc   := ocamlfind "ocamlc";
+	Options.ocamlopt := ocamlfind "ocamlopt";
+	Options.ocamldep := ocamlfind "ocamldep";
+	Options.ocamldoc := ocamlfind "ocamldoc";
+
+	flag ["ocaml"; "link"; "program"] & A"-linkpkg";
+
+	List.iter
+		(fun package -> flag_all ("pkg_" ^ package) (S[A"-package"; A package]))
+		(installed_packages ());
+
+	List.iter
+		(fun syntax -> flag_all_except_link ("syntax_" ^ syntax) (S[A"-syntax"; A syntax]))
+		syntaxes
 
 let _ =
 	dispatch begin function
 		| After_rules ->
-
-			let ocamlfind x = S[A"ocamlfind"; A x] in
-			Options.ocamlc   := ocamlfind "ocamlc";
-			Options.ocamlopt := ocamlfind "ocamlopt";
-			Options.ocamldep := ocamlfind "ocamldep";
-			Options.ocamldoc := ocamlfind "ocamldoc";
-
-			flag ["ocaml"; "link"; "program"] & A"-linkpkg";
-
-			List.iter
-				(fun package -> flag_all ("pkg_" ^ package) (S[A"-package"; A package]))
-				(installed_packages ());
-
-			List.iter
-				(fun syntax -> flag_all_except_link ("syntax_" ^ syntax) (S[A"-syntax"; A syntax]))
-				syntaxes;
-
-			rule "Install" ~prod:"install" ~deps
-				(fun _ _ -> Cmd (S(A"ocamlfind" :: A"install" :: A"pa_le" :: files)));
-
-			rule "Uninstall" ~prod:"uninstall" ~deps:[]
-				(fun _ _ -> Cmd (S[A"ocamlfind"; A"remove"; A"pa_le"]));
-
+			prepare ();
+			installer_rules ~files ~name:"pa_le";
 		| _ -> ()
 	end
