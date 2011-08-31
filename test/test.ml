@@ -9,3 +9,6 @@ let location =
 let eachl =
 	let lst = ["a"; "b"; "c"] in
 	eachl lst (print_endline __)
+
+let id =
+	print_int int_id

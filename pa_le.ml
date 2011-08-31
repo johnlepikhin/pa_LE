@@ -69,12 +69,60 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 		let register = Each.register ~modname:"List" ~fname:"map"
 	end
 
+	module Id = struct
+		let fname = "pa_le.id"
+
+		type t = {
+			mutable m : int;
+			h : (Loc.t, int) Hashtbl.t;
+		}
+
+		let get _loc =
+			let v =
+				try
+					let ch = open_in fname in
+					let r = input_value ch in
+					close_in ch;
+					r
+				with
+					| _ -> {
+							h = Hashtbl.create 100;
+							m = 0;
+						}
+			in
+			let id =
+				try
+					Hashtbl.find v.h _loc
+				with
+					| _ ->
+						let r = v.m + 1 in
+						v.m <- r;
+						Hashtbl.add v.h _loc r;
+						r
+			in
+			let ch = open_out fname in
+			output_value ch v;
+			close_out ch;
+			string_of_int id
+
+		let register_int _loc =
+			let id = get _loc in
+			<:expr< $int:id$ >>
+
+		let register_string _loc =
+			let id = get _loc in
+			<:expr< $str:id$ >>
+
+	end
+
 	EXTEND Gram
 
 	GLOBAL: expr;
 
 		expr: LEVEL "." [
 			[ "__" -> DefaultValue.register _loc ]
+			| [ LIDENT "int_id" -> Id.register_int _loc ]
+			| [ LIDENT "string_id" -> Id.register_string _loc ]
 		];
 
 		expr: LEVEL "top" [
