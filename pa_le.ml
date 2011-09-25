@@ -132,19 +132,19 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
 		let funcs = ref [| |]
 
-		let make ~s ~steps _loc =
-			if steps = 0 then
+		let make ~s ~deepness _loc =
+			if deepness = 0 then
 				string ~s _loc
 			else
 				let l = Array.length !funcs in
 				let f = (!funcs).(Random.int l) in
-				f ~s ~steps:(steps-1) _loc
+				f ~s ~deepness:(deepness-1) _loc
 
 		let add_f f =
 			funcs := Array.append !funcs [|f|]
 
 		let add_xor =
-			let f ~s ~steps _loc =
+			let f ~s ~deepness _loc =
 				let l = String.length s in
 				let xor = random ((Random.int 10) + 1) in
 				let xorl = String.length xor in
@@ -163,8 +163,8 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 					loop (l-1);
 					r
 				in
-				let expr = make ~s ~steps _loc in
-				let xor_expr = make ~s:xor ~steps _loc in
+				let expr = make ~s ~deepness _loc in
+				let xor_expr = make ~s:xor ~deepness _loc in
 				<:expr<
 					let s = $expr$ in
 					let xor = $xor_expr$ in
@@ -191,13 +191,13 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 			add_f f
 
 		let add_rev =
-			add_f (fun ~s ~steps _loc ->
+			add_f (fun ~s ~deepness _loc ->
 				let l = String.length s in
 				let r = String.create l in
 				for i=0 to l-1 do
 					r.[i] <- s.[l-1-i];
 				done;
-				let expr = make ~s:r ~steps _loc in
+				let expr = make ~s:r ~deepness _loc in
 				<:expr<
 					let s = $expr$ in
 					let l = $int:string_of_int l$ in
@@ -212,7 +212,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 			)
 
 		let add_bitorder =
-			add_f (fun ~s ~steps _loc ->
+			add_f (fun ~s ~deepness _loc ->
 				let l = String.length s in
 				let r = String.create l in
 				for i=0 to l-1 do
@@ -220,7 +220,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 					let b2 = (Char.code s.[i]) lsr 4 in
 					r.[i] <- Char.chr ((b1 lsl 4) + b2);
 				done;
-				let expr = make ~s:r ~steps _loc in
+				let expr = make ~s:r ~deepness _loc in
 				<:expr<
 					let s = $expr$ in
 					let l = $int:string_of_int l$ in
@@ -237,48 +237,49 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 			)
 
 		let add_split =
-			add_f (fun ~s ~steps _loc ->
+			add_f (fun ~s ~deepness _loc ->
 				let l = String.length s in
 				if l>0 then
 				begin
 					let p = Random.int l in
 					let s1 = String.sub s 0 p in
 					let s2 = String.sub s p (l-p) in
-					let expr1 = make ~s:s1 ~steps _loc in
-					let expr2 = make ~s:s2 ~steps _loc in
+					let expr1 = make ~s:s1 ~deepness _loc in
+					let expr2 = make ~s:s2 ~deepness _loc in
 					<:expr<
 						String.concat "" [$expr1$; $expr2$]
 					>>
 				end
 				else
-					make ~s ~steps:(steps+1) _loc
+					make ~s ~deepness:(deepness+1) _loc
 			)
 
 		let add_prefix =
-			add_f (fun ~s ~steps _loc ->
+			add_f (fun ~s ~deepness _loc ->
 				let l = String.length s in
 				let prefix_len = (Random.int 10)+3 in
 				let prefix = random prefix_len in
 				let s = prefix ^ s in
-				let expr = make ~s ~steps _loc in
+				let expr = make ~s ~deepness _loc in
 				<:expr<
 					String.sub $expr$ $int:string_of_int prefix_len$ $int:string_of_int l$
 				>>
 			)
 
 		let add_suffix =
-			add_f (fun ~s ~steps _loc ->
+			add_f (fun ~s ~deepness _loc ->
 				let l = String.length s in
 				let suffix = random ((Random.int 10)+3) in
 				let s = s ^ suffix in
-				let expr = make ~s ~steps _loc in
+				let expr = make ~s ~deepness _loc in
 				<:expr<
 					String.sub $expr$ 0 $int:string_of_int l$
 				>>
 			)
 
-		let register ~pwd _loc =
-			let expr = make ~s:pwd ~steps:8 _loc in
+		let register ~pwd ~deepness _loc =
+			let deepness = int_of_string deepness in
+			let expr = make ~s:pwd ~deepness _loc in
 			<:expr<
 				fun () -> $expr$
 			>>
@@ -300,7 +301,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 			| [ LIDENT "eachl"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> EachL.register ~lst ~name ~f _loc ]
 			| [ LIDENT "eacha"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> EachA.register ~lst ~name ~f _loc ]
 			| [ LIDENT "mapl"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> MapL.register ~lst ~name ~f _loc ]
-			| [ LIDENT "obfuscate_password"; pwd = STRING -> ObfuscatePassword.register ~pwd _loc ]
+			| [ LIDENT "obfuscate_password"; pwd = STRING; deepness = INT -> ObfuscatePassword.register ~pwd ~deepness _loc ]
 		];
 	END;
 
