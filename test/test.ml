@@ -12,3 +12,8 @@ let eachl =
 
 let id =
 	print_int int_id
+
+let password = obfuscate_password "Secret!"
+
+let _ =
+	print_endline (password ())
