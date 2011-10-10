@@ -74,7 +74,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
 		type t = {
 			mutable m : int;
-			h : (Loc.t, int) Hashtbl.t;
+			h : (string, int) Hashtbl.t;
 		}
 
 		let get _loc =
@@ -90,14 +90,15 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 							m = 0;
 						}
 			in
+			let key = Loc.to_string _loc in
 			let id =
 				try
-					Hashtbl.find v.h _loc
+					Hashtbl.find v.h key
 				with
 					| _ ->
 						let r = v.m + 1 in
 						v.m <- r;
-						Hashtbl.add v.h _loc r;
+						Hashtbl.add v.h key r;
 						r
 			in
 			let ch = open_out fname in
