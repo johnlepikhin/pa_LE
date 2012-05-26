@@ -294,11 +294,11 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 			[ "__" -> DefaultValue.register _loc ]
 			| [ LIDENT "int_id" -> Id.register_int _loc ]
 			| [ LIDENT "string_id" -> Id.register_string _loc ]
+			| [ LIDENT "location" -> Location.register _loc ]
 		];
 
 		expr: LEVEL "top" [
 			[ LIDENT "debug"; fmt = STRING; args = LIST0 [ n = expr LEVEL "." -> n ] -> Debug.register ~fmt ~args _loc ]
-			| [ LIDENT "location" -> Location.register _loc ]
 			| [ LIDENT "eachl"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> EachL.register ~lst ~name ~f _loc ]
 			| [ LIDENT "eacha"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> EachA.register ~lst ~name ~f _loc ]
 			| [ LIDENT "mapl"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> MapL.register ~lst ~name ~f _loc ]
