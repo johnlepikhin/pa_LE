@@ -26,14 +26,20 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 	module Debug = struct
 		let enabled = ref false
 
-		let register ~fmt ~args _loc =
+		let register ?arg ~fmt ~args _loc =
 			if !enabled then
 			begin
 				let (f, l) = Location.get _loc in
 				let s = List.fold_left (fun tl e -> <:expr< $tl$ $e$ >>) <:expr< Printf.sprintf $str:fmt$ >> args in
-				<:expr<
-					Le_log.log ~filename:$str:f$ ~line:$int:l$ $s$
-				>>
+				match arg with
+					| None ->
+						<:expr<
+							Le_log.log ~filename:$str:f$ ~line:$int:l$ $s$
+						>>
+					| Some arg ->
+						<:expr<
+							Le_log.log ~arg:$arg$ ~filename:$str:f$ ~line:$int:l$ $s$
+						>>
 			end
 			else
 				<:expr< () >>
@@ -298,7 +304,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 		];
 
 		expr: LEVEL "top" [
-			[ LIDENT "debug"; fmt = STRING; args = LIST0 [ n = expr LEVEL "." -> n ] -> Debug.register ~fmt ~args _loc ]
+			[ LIDENT "debug"; arg = OPT [ ":"; e = expr LEVEL "." -> e ];  fmt = STRING; args = LIST0 [ n = expr LEVEL "." -> n ] -> Debug.register ?arg ~fmt ~args _loc ]
 			| [ LIDENT "eachl"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> EachL.register ~lst ~name ~f _loc ]
 			| [ LIDENT "eacha"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> EachA.register ~lst ~name ~f _loc ]
 			| [ LIDENT "mapl"; lst = expr LEVEL "."; name = OPT [ s = LIDENT -> s ]; "("; f = expr LEVEL ";"; ")" -> MapL.register ~lst ~name ~f _loc ]
